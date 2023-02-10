@@ -15,6 +15,8 @@ console.log(process.env.NODE_ENV)
 
 connectDB()
 
+app.use(express.json({limit: '25mb'}));
+
 app.use(logger)
 
 app.use(cors(corsOptions))
