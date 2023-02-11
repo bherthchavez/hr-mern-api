@@ -23,7 +23,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 // @route POST /users
 // @access Private
 const createNewUser = async (req, res) => {
-  const { name, username, password, roles, image } = req.body;
+  const { name, email, department, position, username, password, roles, image } = req.body;
 
   // Confirm data
   if (!name || !username || !password) {
@@ -48,6 +48,9 @@ const createNewUser = async (req, res) => {
   const userObject = !roles.length
     ? {
         name,
+        email,
+        position,
+        department,
         username,
         password: hashedPwd,
         avatar: result.secure_url,
@@ -55,6 +58,9 @@ const createNewUser = async (req, res) => {
       }
     : {
         name,
+        email,
+        position,
+        department,
         username,
         password: hashedPwd,
         roles,
