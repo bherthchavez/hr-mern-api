@@ -40,14 +40,6 @@ const userSchema = new mongoose.Schema(
     cloudinary_id: {
       type: String,
     },
-    documents: [{
-      document_name: String,
-      document_no: String,
-      issue_date: String,
-      expiry_date: String,
-      document_avatar: String,
-      document_cloud_id: String,
-    }]
   },
   {
     timestamps: true,
