@@ -23,7 +23,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 // @route POST /users
 // @access Private
 const createNewUser = async (req, res) => {
-  const { name, email, department, position, username, password, roles, image, rows} = req.body;
+  const { name, email, department, position, username, password, roles, image, userDocs } = req.body;
 
   console.log(req.body)
 
@@ -45,63 +45,47 @@ const createNewUser = async (req, res) => {
   // Hash password
   const hashedPwd = await bcrypt.hash(password, 10); // salt rounds
 
- 
+
   const docsObject = []
-  if (rows.length){
 
-    rows.forEach((docs)=>{
-     
-      console.log(docs.Attachment)
+  if (userDocs.length) {
+    userDocs.forEach(async (docs) => {
 
+      const resultDocs = await cloudinary.uploader.upload(docs.Attachment);
 
-      // const resultDocs =  cloudinary.uploader.upload(docs.Attachment[0].data);
-
-      // const tempDocsObject = {
-      // "document_name": docs.Document_Name,
-      // "document_no": docs.Document_No,
-      // "issue_date": docs.Issue_Date,
-      // "expiry_date": docs.Expiry_Date,
-      // "document_avatar": resultDocs.secure_url,
-      // "document_cloud_id": resultDocs.public_id,
-      // }
-      // docsObject.push(tempDocsObject)
-
-  })
-  console.log(docsObject)
-    
+      const tempDocsObject = {
+        document_name: docs.Document_Name,
+        document_no: docs.Document_No,
+        issue_date: docs.Issue_Date,
+        expiry_date: docs.Expiry_Date,
+        document_avatar: resultDocs.secure_url,
+        document_cloud_id: resultDocs.public_id,
+      }
+      docsObject.push(tempDocsObject)
+      console.log(tempDocsObject)
+      console.log(docsObject)
+    })
   }
 
-  
   const result = await cloudinary.uploader.upload(image);
 
-  const userObject = !roles.length
-    ? {
-        name,
-        email,
-        position,
-        department,
-        username,
-        password: hashedPwd,
-        avatar: result.secure_url,
-        cloudinary_id: result.public_id,
-      }
-    : {
-        name,
-        email,
-        position,
-        department,
-        username,
-        password: hashedPwd,
-        roles,
-        avatar: result.secure_url,
-        cloudinary_id: result.public_id,
-      };
-
-      console.log(userObject)
-
+  const userObject = {
+    name,
+    email,
+    position,
+    department,
+    username,
+    password: hashedPwd,
+    roles,
+    avatar: result.secure_url,
+    cloudinary_id: result.public_id,
+    documents: docsObject
+  }
+    // console.log(docsObject)
+    console.log(userObject)
   // Create and store new user
-  // const user = await User.create(userObject);
-
+  const user = await User.create(userObject);
+  console.log(user)
   if (user) {
     //created
     res.status(201).json({ message: `New user ${username} created` });
@@ -189,6 +173,13 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   // Delete image from cloudinary
   await cloudinary.uploader.destroy(user.cloudinary_id);
+  if (user.documents.length) {
+    user.documents.forEach(async (docs) => {
+      await cloudinary.uploader.destroy(docs.document_cloud_id);
+    })
+
+  }
+
 
   const result = await user.deleteOne();
 
