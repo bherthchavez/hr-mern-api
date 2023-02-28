@@ -25,7 +25,7 @@ const getAllUsers = asyncHandler(async (req, res) => {
 const createNewUser = async (req, res) => {
   const { name, email, department, position, username, password, roles, image, userDocs } = req.body;
 
-  console.log(req.body)
+  // console.log(req.body)
 
   // Confirm data
   if (!name || !username || !password) {
@@ -45,26 +45,54 @@ const createNewUser = async (req, res) => {
   // Hash password
   const hashedPwd = await bcrypt.hash(password, 10); // salt rounds
 
+  const cloudinaryImageUploadMethod = async file => {
+    return new Promise(resolve => {
+        cloudinary.uploader.upload( file , (err, res) => {
+          if (err) return res.status(500).send("upload image error")
+            resolve({
+              res: res.secure_url
+            }) 
+          }
+        ) 
+    })
+  }
+
 
   const docsObject = []
 
+
   if (userDocs.length) {
-    userDocs.forEach(async (docs) => {
 
-      const resultDocs = await cloudinary.uploader.upload(docs.Attachment);
+    async function uploadDocs() {
 
-      const tempDocsObject = {
-        document_name: docs.Document_Name,
-        document_no: docs.Document_No,
-        issue_date: docs.Issue_Date,
-        expiry_date: docs.Expiry_Date,
-        document_avatar: resultDocs.secure_url,
-        document_cloud_id: resultDocs.public_id,
+      for (const docs of userDocs) {
+
+        await cloudinary.uploader
+        .upload(docs.Attachment,{
+          resource_type: "auto"
+        })
+        .then((result)=>{
+          const tempDocsObject = {
+            document_name: docs.Document_Name,
+            document_no: docs.Document_No,
+            issue_date: docs.Issue_Date,
+            expiry_date: docs.Expiry_Date,
+            document_format: result.format,
+            document_url: result.url,
+            document_cloud_id: result.public_id,
+          }
+          docsObject.push(tempDocsObject)
+          
+        })
+        .catch((error)=>{
+          console.log("Error", JSON.stringify(error,null,2))
+
+        })
       }
-      docsObject.push(tempDocsObject)
-      console.log(tempDocsObject)
-      console.log(docsObject)
-    })
+
+    }
+
+   await uploadDocs()
   }
 
   const result = await cloudinary.uploader.upload(image);
@@ -81,11 +109,8 @@ const createNewUser = async (req, res) => {
     cloudinary_id: result.public_id,
     documents: docsObject
   }
-    // console.log(docsObject)
-    console.log(userObject)
   // Create and store new user
   const user = await User.create(userObject);
-  console.log(user)
   if (user) {
     //created
     res.status(201).json({ message: `New user ${username} created` });

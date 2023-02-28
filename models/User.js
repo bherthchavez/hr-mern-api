@@ -45,7 +45,8 @@ const userSchema = new mongoose.Schema(
       document_no: String,
       issue_date: String,
       expiry_date: String,
-      document_avatar: String,
+      document_format: String,
+      document_url: String,
       document_cloud_id: String,
     }]
   },
