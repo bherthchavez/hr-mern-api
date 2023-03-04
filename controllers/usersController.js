@@ -47,13 +47,13 @@ const createNewUser = async (req, res) => {
 
   const cloudinaryImageUploadMethod = async file => {
     return new Promise(resolve => {
-        cloudinary.uploader.upload( file , (err, res) => {
-          if (err) return res.status(500).send("upload image error")
-            resolve({
-              res: res.secure_url
-            }) 
-          }
-        ) 
+      cloudinary.uploader.upload(file, (err, res) => {
+        if (err) return res.status(500).send("upload image error")
+        resolve({
+          res: res.secure_url
+        })
+      }
+      )
     })
   }
 
@@ -68,31 +68,31 @@ const createNewUser = async (req, res) => {
       for (const docs of userDocs) {
 
         await cloudinary.uploader
-        .upload(docs.Attachment,{
-          resource_type: "auto"
-        })
-        .then((result)=>{
-          const tempDocsObject = {
-            document_name: docs.Document_Name,
-            document_no: docs.Document_No,
-            issue_date: docs.Issue_Date,
-            expiry_date: docs.Expiry_Date,
-            document_format: result.format,
-            document_url: result.url,
-            document_cloud_id: result.public_id,
-          }
-          docsObject.push(tempDocsObject)
-          
-        })
-        .catch((error)=>{
-          console.log("Error", JSON.stringify(error,null,2))
+          .upload(docs.Attachment, {
+            resource_type: "auto"
+          })
+          .then((result) => {
+            const tempDocsObject = {
+              document_name: docs.Document_Name,
+              document_no: docs.Document_No,
+              issue_date: docs.Issue_Date,
+              expiry_date: docs.Expiry_Date,
+              document_format: result.format,
+              document_url: result.url,
+              document_cloud_id: result.public_id,
+            }
+            docsObject.push(tempDocsObject)
 
-        })
+          })
+          .catch((error) => {
+            console.log("Error", JSON.stringify(error, null, 2))
+
+          })
       }
 
     }
 
-   await uploadDocs()
+    await uploadDocs()
   }
 
   const result = await cloudinary.uploader.upload(image);
@@ -123,7 +123,7 @@ const createNewUser = async (req, res) => {
 // @route PATCH /users
 // @access Private
 const updateUser = asyncHandler(async (req, res) => {
-  const { id, name, username, roles, active, password, image } = req.body;
+  const { id, name, username, roles, active, password, image, userDocs } = req.body;
 
   // Confirm data
   if (!id || !name || !username || !roles) {
@@ -155,17 +155,92 @@ const updateUser = asyncHandler(async (req, res) => {
     result = await cloudinary.uploader.upload(image);
   }
 
+  console.log(userDocs)
+
+  const docsObject = []
+
+  if (userDocs.length) {
+
+    async function uploadDocs() {
+
+      for (const docs of userDocs) {
+
+        if (!userDocs.Attachment) {
+
+          await cloudinary.uploader.destroy(docs.document_cloud_id);
+
+          await cloudinary.uploader
+            .upload(docs.Attachment, {
+              resource_type: "auto"
+            })
+            .then((result) => {
+              const tempDocsObject = {
+                document_name: docs.Document_Name,
+                document_no: docs.Document_No,
+                issue_date: docs.Issue_Date,
+                expiry_date: docs.Expiry_Date,
+                document_format: result.format,
+                document_url: result.url,
+                document_cloud_id: result.public_id,
+              }
+              docsObject.push(tempDocsObject)
+
+            })
+            .catch((error) => {
+              console.log("Error", JSON.stringify(error, null, 2))
+
+            })
+
+        } else {
+
+          const tempDocsObject = {
+            document_name: docs.Document_Name,
+            document_no: docs.Document_No,
+            issue_date: docs.Issue_Date,
+            expiry_date: docs.Expiry_Date,
+            document_format: result.format,
+            document_url: result.url,
+            document_cloud_id: result.public_id,
+          }
+          docsObject.push(tempDocsObject)
+
+        }
+
+      }
+
+    }
+
+    await uploadDocs()
+
+  } else {
+
+    if (user.documents) {
+      async function deleteDocs() {
+        for (const docs of user.documents) {
+          await cloudinary.uploader.destroy(docs.document_cloud_id);
+        }
+      }
+      await deleteDocs()
+    }
+  }
+
+  console.log(docsObject)
+
+
   user.name = name;
   user.username = username;
   user.roles = roles;
   user.active = active;
   user.avatar = result?.secure_url || user.avatar;
   user.cloudinary_id = result?.public_id || user.cloudinary_id;
+  user.documents = docsObject
 
   if (password) {
     // Hash password
     user.password = await bcrypt.hash(password, 10); // salt rounds
   }
+
+  console.log(user)
 
   const updatedUser = await user.save();
 
