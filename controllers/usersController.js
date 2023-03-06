@@ -157,6 +157,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
   console.log(userDocs)
 
+
   const docsObject = []
 
   if (userDocs) {
@@ -167,13 +168,13 @@ const updateUser = asyncHandler(async (req, res) => {
 
         if (docs.Attachment) {
 
-          docs.Cloud_ID && await cloudinary.uploader.destroy(docs.Cloud_ID);
+          console.log(docs.Cloud_ID)
 
           await cloudinary.uploader
             .upload(docs.Attachment, {
               resource_type: "auto"
             })
-            .then((result) => {
+            .then(async (result) => {
               const tempDocsObject = {
                 document_name: docs.Document_Name,
                 document_no: docs.Document_No,
@@ -185,16 +186,14 @@ const updateUser = asyncHandler(async (req, res) => {
               }
               docsObject.push(tempDocsObject)
 
+              docs.Cloud_ID && await cloudinary.uploader.destroy(docs.Cloud_ID);
             })
             .catch((error) => {
               console.log("Error", JSON.stringify(error, null, 2))
 
             })
 
-
-
         } else {
-
           const tempDocsObject = {
             document_name: docs.Document_Name,
             document_no: docs.Document_No,
@@ -205,13 +204,9 @@ const updateUser = asyncHandler(async (req, res) => {
             document_cloud_id: docs.Cloud_ID,
           }
           docsObject.push(tempDocsObject)
-
         }
-
       }
-
     }
-
     await uploadDocs()
 
   } else {
@@ -229,8 +224,9 @@ const updateUser = asyncHandler(async (req, res) => {
 
 
 
-  const docsToDelete = []
   if (docsObject.length < user.documents.length) {
+    const docsToDelete = []
+
     user.documents.forEach((data) => {
       docsObject.forEach((data2) => {
         if (data.document_cloud_id !== data2.document_cloud_id) {
@@ -238,6 +234,7 @@ const updateUser = asyncHandler(async (req, res) => {
         }
       })
     })
+    console.log(docsToDelete)
 
     async function deleteDocs() {
       for (const docs of docsToDelete) {
