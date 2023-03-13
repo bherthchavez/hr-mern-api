@@ -124,7 +124,6 @@ const createNewUser = async (req, res) => {
 const updateUser = asyncHandler(async (req, res) => {
   const { id, name, username, roles, active, password, image, userDocs } = req.body;
 
-  console.log(userDocs)
   // Confirm data
   if (!id || !name || !username || !roles) {
     return res
@@ -201,12 +200,16 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   // Delete image from cloudinary
   await cloudinary.uploader.destroy(user.cloudinary_id);
+ 
+  // Delete user docs from cloudinary
   if (user.documents.length) {
     user.documents.forEach(async (docs) => {
       await cloudinary.uploader.destroy(docs.document_cloud_id);
     })
 
   }
+
+
 
 
   const result = await user.deleteOne();
