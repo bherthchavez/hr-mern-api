@@ -3,7 +3,7 @@ const Note = require("../models/Note");
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const cloudinary = require("../utils/cloudinary");
-const modifyDocs = require("../utils/cloudinaryController")
+const docsController = require("../utils/cloudinaryController")
 
 // @desc Get all users
 // @route GET /users
@@ -46,53 +46,17 @@ const createNewUser = async (req, res) => {
   // Hash password
   const hashedPwd = await bcrypt.hash(password, 10); // salt rounds
 
-  const cloudinaryImageUploadMethod = async file => {
-    return new Promise(resolve => {
-      cloudinary.uploader.upload(file, (err, res) => {
-        if (err) return res.status(500).send("upload image error")
-        resolve({
-          res: res.secure_url
-        })
-      }
-      )
-    })
-  }
-
-  const docsObject = []
-
-  if (userDocs.length) {
-
-    async function uploadDocs() {
-
-      for (const docs of userDocs) {
-
-        await cloudinary.uploader
-          .upload(docs.Attachment, {
-            resource_type: "auto"
-          })
-          .then((result) => {
-            const tempDocsObject = {
-              document_name: docs.Document_Name,
-              document_no: docs.Document_No,
-              issue_date: docs.Issue_Date,
-              expiry_date: docs.Expiry_Date,
-              document_format: result.format,
-              document_url: result.url,
-              document_cloud_id: result.public_id,
-            }
-            docsObject.push(tempDocsObject)
-
-          })
-          .catch((error) => {
-            console.log("Error", JSON.stringify(error, null, 2))
-
-          })
-      }
-
-    }
-
-    await uploadDocs()
-  }
+  // const cloudinaryImageUploadMethod = async file => {
+  //   return new Promise(resolve => {
+  //     cloudinary.uploader.upload(file, (err, res) => {
+  //       if (err) return res.status(500).send("upload image error")
+  //       resolve({
+  //         res: res.secure_url
+  //       })
+  //     }
+  //     )
+  //   })
+  // }
 
   const result = await cloudinary.uploader.upload(image);
 
@@ -106,7 +70,7 @@ const createNewUser = async (req, res) => {
     roles,
     avatar: result.secure_url,
     cloudinary_id: result.public_id,
-    documents: docsObject
+    documents: await docsController.addUserDocs(userDocs)
   }
   // Create and store new user
   const user = await User.create(userObject);
@@ -160,14 +124,12 @@ const updateUser = asyncHandler(async (req, res) => {
   user.active = active;
   user.avatar = result?.secure_url || user.avatar;
   user.cloudinary_id = result?.public_id || user.cloudinary_id;
-  user.documents = await modifyDocs.updateUserDocs(userDocs, user.documents)
+  user.documents = await docsController.updateUserDocs(userDocs, user.documents)
 
   if (password) {
     // Hash password
     user.password = await bcrypt.hash(password, 10); // salt rounds
   }
-
-  console.log(user)
 
   const updatedUser = await user.save();
 
@@ -208,8 +170,6 @@ const deleteUser = asyncHandler(async (req, res) => {
     })
 
   }
-
-
 
 
   const result = await user.deleteOne();

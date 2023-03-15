@@ -1,5 +1,47 @@
 const cloudinary = require("./cloudinary");
 
+module.exports.addUserDocs =  async function(docs){
+
+    const docsObject = []
+
+  if (docs.length) {
+
+    async function uploadDocs() {
+
+      for (const obj of docs) {
+
+        await cloudinary.uploader
+          .upload(obj.Attachment, {
+            resource_type: "auto"
+          })
+          .then((result) => {
+            const tempDocsObject = {
+              document_name: obj.Document_Name,
+              document_no: obj.Document_No,
+              issue_date: obj.Issue_Date,
+              expiry_date: obj.Expiry_Date,
+              document_format: result.format,
+              document_url: result.url,
+              document_cloud_id: result.public_id,
+            }
+            docsObject.push(tempDocsObject)
+
+          })
+          .catch((error) => {
+            console.log("Error", JSON.stringify(error, null, 2))
+
+          })
+      }
+
+    }
+
+    await uploadDocs()
+  }
+
+  return docsObject
+
+}
+
 module.exports.updateUserDocs = async function (newDocs, oldDocs) {
 
     const newDocsObject = []
@@ -11,8 +53,6 @@ module.exports.updateUserDocs = async function (newDocs, oldDocs) {
             for (const docs of newDocs) {
 
                 if (docs.Attachment) {
-
-                    console.log(docs.Cloud_ID)
 
                     await cloudinary.uploader
                         .upload(docs.Attachment, {
@@ -62,7 +102,6 @@ module.exports.updateUserDocs = async function (newDocs, oldDocs) {
             async function deleteDocs() {
                 for (const docs of oldDocs) {
                     await cloudinary.uploader.destroy(docs.document_cloud_id);
-                    console.log('all docs are deleted' + docs.document_cloud_id)
 
                 }
             }
@@ -71,7 +110,7 @@ module.exports.updateUserDocs = async function (newDocs, oldDocs) {
     }
 
     
-    // if (newDocsObject.length < oldDocs.length) {
+    if (newDocsObject.length && oldDocs.length) {
         newDocsObject.forEach((data) => {
             oldDocs.forEach(async (oldData, idx) => {
                 if (data.document_cloud_id === oldData.document_cloud_id) {
@@ -83,7 +122,7 @@ module.exports.updateUserDocs = async function (newDocs, oldDocs) {
         oldDocs.forEach(async (data) => {
             await cloudinary.uploader.destroy(data.document_cloud_id);
         })
-    // }
+    }
 
     return newDocsObject
 }
