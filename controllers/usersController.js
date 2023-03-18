@@ -46,18 +46,6 @@ const createNewUser = async (req, res) => {
   // Hash password
   const hashedPwd = await bcrypt.hash(password, 10); // salt rounds
 
-  // const cloudinaryImageUploadMethod = async file => {
-  //   return new Promise(resolve => {
-  //     cloudinary.uploader.upload(file, (err, res) => {
-  //       if (err) return res.status(500).send("upload image error")
-  //       resolve({
-  //         res: res.secure_url
-  //       })
-  //     }
-  //     )
-  //   })
-  // }
-
   const result = await cloudinary.uploader.upload(image);
 
   const userObject = {
@@ -76,7 +64,7 @@ const createNewUser = async (req, res) => {
   const user = await User.create(userObject);
   if (user) {
     //created
-    res.status(201).json({ message: `New user ${username} created` });
+    res.status(201).json({ message: `New user ${username} successfully created.` });
   } else {
     res.status(400).json({ message: "Invalid user data received" });
   }
@@ -133,7 +121,7 @@ const updateUser = asyncHandler(async (req, res) => {
 
   const updatedUser = await user.save();
 
-  res.json({ message: `${updatedUser.name} updated` });
+  res.json({ message: `${updatedUser.name} successfully updated.` });
 });
 
 // @desc Delete a user
@@ -174,7 +162,7 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   const result = await user.deleteOne();
 
-  const reply = `Username ${result.username} with ID ${result._id} deleted`;
+  const reply = `${result.name} successfully deleted.`;
 
   res.json(reply);
 });
